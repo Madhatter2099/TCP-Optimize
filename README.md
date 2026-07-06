@@ -206,6 +206,11 @@ VPS 通常使用 virtio 虚拟网卡，只有 1 个 RX 队列，不支持硬件 
 
 ---
 
+## 🔗 友链
+https://linux.do/
+https://www.nodeseek.com/
+感谢论坛佬友们的反馈与支持！
+
 ## 📄 License
 
 [MIT](LICENSE)
