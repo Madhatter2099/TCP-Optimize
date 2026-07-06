@@ -479,10 +479,10 @@ while true; do
     echo -e "  7. 彻底卸载面板脚本"
     echo -e "  0. 退出脚本"
     draw_line
-    local cur_cc=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
-    local cur_qdisc=$(sysctl -n net.core.default_qdisc 2>/dev/null)
-    local cur_fd=$(ulimit -n)
-    local cur_fwd=$(sysctl -n net.ipv4.ip_forward 2>/dev/null)
+    cur_cc=$(sysctl -n net.ipv4.tcp_congestion_control 2>/dev/null)
+    cur_qdisc=$(sysctl -n net.core.default_qdisc 2>/dev/null)
+    cur_fd=$(ulimit -n)
+    cur_fwd=$(sysctl -n net.ipv4.ip_forward 2>/dev/null)
     echo -e "  算法: ${GREEN}${cur_cc}${NC} | 队列: ${GREEN}${cur_qdisc}${NC} | 句柄: ${GREEN}${cur_fd}${NC} | 转发: ${GREEN}${cur_fwd}${NC}"
     draw_line
 
