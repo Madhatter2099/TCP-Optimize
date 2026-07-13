@@ -2,71 +2,49 @@
 
 > 一键优化 VPS 作为网络中转服务器的内核参数、拥塞控制、缓冲区与连接跟踪，专为跨境高丢包/高延迟链路设计。
 >
-> 本项目基于 [666shen/tcp-dashboard](https://github.com/666shen/tcp-dashboard) 改进，修复了原版多处 bug 并补充了关键调优参数。
+> 本项目基于 [666shen/tcp-dashboard](https://github.com/666shen/tcp-dashboard) 改进，v2.1 版本新增工作负载模板、基准测试与持久化服务。
 
 ![Shell](https://img.shields.io/badge/Shell-Bash-green?logo=gnubash&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 ![Platform](https://img.shields.io/badge/Platform-Linux%204.9%2B-orange)
+![Version](https://img.shields.io/badge/Version-v2.1--Enhanced-purple)
+
+---
+
+## ✨ v2.1 更新
+
+新增功能：
+
+| 新增/改进 | 说明 | 菜单位置 |
+|-----------|------|----------|
+| **工作负载配置模板 (Profiles)** | 一键应用 4 种实用场景模板（轻量 Web、高并发代理/VPN、游戏/低延迟、最大吞吐国际链路），自动调整缓冲区、conntrack、UDP 参数等 | **选项 8** |
+| **网络性能基准测试** | 实时展示当前关键内核参数 + 简单 ping 测试 + 推荐验证命令（iperf3 / mtr / ss），让用户直观看到优化效果 | **选项 9** |
+| **RPS + MSS Clamp 持久化** | 新增 systemd oneshot 服务（`rps-optimize.service` / `mss-clamp.service`），重启后自动生效 | 选项 3 / 4 成功后询问 |
+| **BBR 版本描述修正** | 明确说明 Linux 主线内核目前仍为 BBRv1（含部分 v2 改进），BBRv3 需 patch 或特定内核 | 选项 2 |
+| 菜单与交互优化 | 新增选项 8、9，状态检测更完善，卸载时同步清理持久化服务 | - |
+
+> **推荐新用户直接使用选项 8（工作负载模板）**，大多数代理/VPN 用户选择「高并发代理/VPN」模板即可获得优秀效果。
 
 ---
 
 ## 📋 功能概览
 
-| 模块 | 说明 |
-|------|------|
-| **IPv4 优先解析** | 通过 `gai.conf` 将 DNS 解析优先级设为 IPv4，避免 IPv6 默认路由绕路导致的握手卡顿 |
-| **BBR + FQ** | 启用 Google BBR 拥塞控制 + Fair Queue 队列调度，降低跨境丢包重传、提升单线程吞吐 |
-| **生产级内核调优** | 动态计算缓冲区（基于总内存 5%）、扩容连接队列、开启 IP 转发、调优 conntrack 连接跟踪表 |
-| **网卡多核分发 (RPS)** | 将网卡软中断从单核分发到所有 CPU 核心，消除 SoftIRQ 瓶颈 |
-| **一键回退** | 清理所有独立配置文件，将内存参数恢复为系统默认值 |
-
-## ✨ 核心调优参数一览
-
-<details>
-<summary>点击展开完整参数列表</summary>
-
-```
-# 拥塞控制
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-
-# IP 转发（中转必须）
-net.ipv4.ip_forward = 1
-
-# 连接队列
-net.core.somaxconn = 65535
-net.core.netdev_max_backlog = 65535
-
-# TCP 缓冲区（动态计算，此处为示例值）
-net.core.rmem_max = 53687091        # 总内存 5%
-net.core.wmem_max = 53687091
-net.ipv4.tcp_rmem = 4096 87380 53687091
-net.ipv4.tcp_wmem = 4096 65536 53687091
-
-# UDP 缓冲区（Hysteria2/QUIC）
-net.ipv4.udp_mem = 65536 131072 262144
-
-# 跨境链路专项
-net.ipv4.tcp_notsent_lowat = 16384  # 降低 TTFB
-net.ipv4.tcp_mtu_probing = 1       # 解决 PMTUD 黑洞
-net.ipv4.tcp_ecn = 2               # 被动响应 ECN，不主动请求
-net.ipv4.tcp_slow_start_after_idle = 0
-net.ipv4.tcp_fastopen = 3
-
-# Conntrack 连接跟踪（动态计算）
-net.netfilter.nf_conntrack_max = 动态
-net.netfilter.nf_conntrack_tcp_timeout_established = 7200
-
-# 文件句柄
-* soft nofile 1048576
-* hard nofile 1048576
-```
-
-</details>
+| 模块 | 说明 | v2.1 状态 |
+|------|------|-----------|
+| **IPv4 优先解析** | 通过 `gai.conf` 优先返回 A 记录，避免 IPv6 绕路卡顿 | 保留 |
+| **BBR + FQ** | Google BBR 拥塞控制 + fq 队列调度 | 保留 + 版本说明修正 |
+| **生产级内核调优** | 动态缓冲区（总内存 5%）、连接队列、IP 转发、conntrack 调优 | 保留 |
+| **网卡多核分发 (RPS)** | 软中断多核分发，消除单核瓶颈 | **新增持久化服务** |
+| **工作负载配置模板** | 4 种场景一键优化 | **v2.1 新增** |
+| **网络性能基准测试** | 参数展示 + ping 测试 + 验证命令 | **v2.1 新增** |
+| **一键回退** | 清理配置并删除持久化服务 | 增强 |
 
 ---
 
 ## 🛠️ 部署方法
+
+保持原有三种方式不变（GitHub Raw / jsDelivr / 手动下载），安装后输入 `t` 即可打开面板。
+
 
 ### 方法一：GitHub Raw 链接（推荐）
 
@@ -98,7 +76,7 @@ t
 
 ## 📖 使用说明
 
-### 交互式面板
+### 交互式面板（v2.1 版本）
 
 安装完成后，输入 `t` 打开面板：
 
@@ -115,38 +93,31 @@ t
   5. 一键回退到默认设置
   6. 检查并强制同步更新脚本
   7. 彻底卸载面板脚本
-  0. 退出脚本
+  8. 工作负载配置模板 (Profiles)     一键应用推荐参数
+  9. 网络性能基准测试               查看当前状态与验证提升
+  10. 退出脚本
 --------------------------------------------------
   算法: bbr | 队列: fq | 句柄: 1048576 | 转发: 1
 --------------------------------------------------
-```
 
-### 推荐执行顺序
+### 推荐执行顺序（v2.1）
 
-1. **选 3**（生产级内核调优）— 这会自动包含 BBR + FQ + 缓冲区 + conntrack + IP 转发，是最核心的一步
-2. **选 1**（IPv4 优先）— 如果你的 VPS 有 IPv6 且出口路由不佳
-3. **选 4**（网卡多核分发）— 如果你的 VPS ≥ 2 核心
+1. **选项 8**（工作负载配置模板）—— **新用户首选**，根据用途一键应用最优参数
+2. **选项 3**（生产级内核调优）—— 需要更激进自定义时使用
+3. **选项 4**（RPS）—— 多核 VPS 推荐开启，并创建持久化服务
+4. **选项 1**（IPv4 优先）—— IPv6 出口不佳时使用
+5. **选项 9**（基准测试）—— 随时查看当前状态与验证效果
 
-> [!NOTE]
-> 选项 3 已经包含了 BBR + FQ 的配置，所以**不需要**单独再执行选项 2。选项 2 适用于只想开 BBR 而不做其他调优的场景。
-
-### 卸载
-
-```bash
-t
-# 选择 7，会自动回退所有配置并删除脚本
-```
+> 选项 3 已包含 BBR + FQ，无需单独执行选项 2。
 
 ---
 
 ## ⚙️ 系统要求
 
-| 要求 | 说明 |
-|------|------|
-| 操作系统 | Debian 9+ / Ubuntu 18.04+ / CentOS 7+ / AlmaLinux / Rocky |
-| 内核版本 | ≥ 4.9（BBR 支持）；≥ 6.12 自动获得 BBRv3 |
-| 权限 | root |
-| 依赖 | `curl`（必须）、`ethtool`（网卡优化模块会自动安装） |
+- 操作系统：Debian 9+ / Ubuntu 18.04+ / CentOS 7+ / AlmaLinux / Rocky
+- 内核：≥ 4.9（支持 BBR）
+- 权限：root
+- 依赖：`curl`（必须）、`ethtool`（会自动安装）、`systemd`（持久化服务需要）
 
 ---
 
@@ -155,64 +126,73 @@ t
 <details>
 <summary><b>BBRv3 怎么才能用上？</b></summary>
 
-BBRv3 已经合并进 Linux 6.12+ 主线内核。只要你的内核版本 ≥ 6.12，设置 `tcp_congestion_control = bbr` 就是 BBRv3，无需额外操作。脚本会自动检测并显示你当前的 BBR 版本。
+Linux **主线内核目前仍为 BBRv1（含部分 v2 改进）**。脚本 v2.1 已修正原版错误描述。
 
-如果想在老内核上用 BBRv3，需要安装 [xanmod](https://xanmod.org/) 等自定义内核。
-
-</details>
-
-<details>
-<summary><b>为什么 ECN 设置为 2 而不是 1？</b></summary>
-
-`tcp_ecn = 1` 会让服务器作为客户端发起连接时，在 SYN 包中主动请求 ECN 协商。跨境链路上，大量中间设备会丢弃带 ECN 标记的 SYN 包，导致连接建立失败。
-
-`tcp_ecn = 2` 表示服务端只被动响应 ECN 请求，不主动发起，兼容性更好。
+- 内核 ≥ 6.12 时会显示支持较新 BBR 实现，但仍需注意主线限制。
+- 想使用完整 BBRv3，请安装带 patch 的内核（如 Xanmod、zen-kernel）或手动编译 Google 官方 BBRv3 模块。
 
 </details>
 
 <details>
-<summary><b>RPS 和 RSS 有什么区别？</b></summary>
+<summary><b>RPS 和 MSS Clamp 重启后还在吗？（v2.1 重要更新）</b></summary>
 
-- **RSS（Receive Side Scaling）** 是硬件特性，需要网卡支持多队列。物理机常见。
-- **RPS（Receive Packet Steering）** 是纯软件方案，通过哈希将数据包分发到不同 CPU 处理。
+**v2.1 已解决此痛点**：
 
-VPS 通常使用 virtio 虚拟网卡，只有 1 个 RX 队列，不支持硬件 RSS。RPS 是 VPS 环境下消除单核软中断瓶颈的最佳方案。
+- **RPS/RFS**：开启后可创建 `rps-optimize.service`，重启自动生效。
+- **MSS Clamp**：开启后可创建 `mss-clamp.service`，重启自动生效。
+- sysctl 参数和 limits 原本就已持久化。
+- 回退（选项 5）和卸载（选项 7）会自动停止并删除这两个 systemd 服务。
 
 </details>
 
 <details>
-<summary><b>重启后配置还在吗？</b></summary>
+<summary><b>为什么推荐使用「工作负载配置模板」（选项 8）？</b></summary>
 
-- **sysctl 参数**（BBR、缓冲区、conntrack 等）：✅ 持久化在 `/etc/sysctl.d/` 下，重启后自动生效。
-- **文件句柄限制**：✅ 持久化在 `/etc/security/limits.d/` 下。
-- **RPS/RFS**：❌ 不持久化，重启后需重新执行选项 4。如需持久化，可将命令写入 `/etc/rc.local` 或 systemd 服务。
-- **MSS Clamp (iptables)**：❌ 不持久化，重启后需重新执行选项 3，或使用 `iptables-persistent` 保存。
+不同用途对参数需求差异很大：
+
+- **高并发代理/VPN**：更大 UDP 缓冲 + 更高 conntrack + 更激进回收（适合 Hysteria2/Xray）
+- **游戏/低延迟**：更小缓冲 + 更激进 `tcp_notsent_lowat`
+- **最大吞吐国际链路**：最大缓冲区设置
+
+模板会自动为你调整最合适的参数组合，比手动调优更安全高效。
+
+</details>
+
+<details>
+<summary><b>如何验证优化是否有效？</b></summary>
+
+使用 **选项 9（网络性能基准测试）**：
+
+- 实时展示当前 CC、缓冲区大小、conntrack 使用率、RPS 状态等关键参数
+- 自动执行 ping 测试（延迟 + 丢包）
+- 提供 `iperf3`、`mtr`、`ss` 等实用验证命令
+
+建议在应用模板或生产级调优**前后各运行一次**选项 9，对比参数变化即可直观看到提升。
 
 </details>
 
 <details>
 <summary><b>适合什么代理协议？</b></summary>
 
-本脚本对所有基于 TCP/UDP 的代理协议都有效：
+对所有 TCP/UDP 代理均有效，尤其在以下场景提升明显：
 
-| 协议 | 受益最大的参数 |
-|------|---------------|
-| VLESS / VMess / Trojan | BBR + 缓冲区 + tcp_notsent_lowat + tcp_fastopen |
-| Reality | BBR + tcp_mtu_probing + MSS Clamp |
-| Hysteria2 / TUIC | UDP 缓冲区 + udp_mem |
-| WireGuard | ip_forward + 缓冲区 |
+- VLESS / VMess / Trojan / Reality
+- Hysteria2 / TUIC（UDP 缓冲优化）
+- WireGuard（IP 转发 + 缓冲区）
 
 </details>
 
 ---
 
 ## 🔗 友链
-https://linux.do/
+
+https://linux.do/  
 https://www.nodeseek.com/
-感谢论坛佬友们的反馈与支持！
+
+感谢社区用户的反馈与建议！
 
 ## 📄 License
 
 [MIT](LICENSE)
 
-本项目基于 [666shen/tcp-dashboard](https://github.com/666shen/tcp-dashboard)（MIT License）改进。
+本项目基于 [666shen/tcp-dashboard](https://github.com/666shen/tcp-dashboard) 改进。
